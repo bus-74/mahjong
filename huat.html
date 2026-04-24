@@ -516,6 +516,7 @@
   </div>
 </div>
 
+<script src="src/rules/scoring.js"></script>
 <script>
 // ============================================================
 // LANGUAGE & I18N
@@ -895,7 +896,7 @@ function drawTile(player, done) {
   // For the human player: check Zimo (self-draw win) and concealed Kong
   if(player === PLAYER) {
     const zimoResult = canHu(GS.hands[PLAYER], GS.melds[PLAYER], null)
-      ? calcFaan(GS.hands[PLAYER], GS.melds[PLAYER], GS.flowers[PLAYER], {selfDraw:true, dealer:GS.dealer===PLAYER, seatWind:WINDS_ORDER[PLAYER]})
+      ? scoreWinningHand(GS.hands[PLAYER], GS.melds[PLAYER], GS.flowers[PLAYER], {selfDraw:true, dealer:GS.dealer===PLAYER, seatWind:WINDS_ORDER[PLAYER]})
       : null;
     const hasConcealedKong = findConcealedKong(GS.hands[PLAYER]);
     if((zimoResult && zimoResult.faan >= 3) || hasConcealedKong) {
@@ -983,121 +984,22 @@ function sortHand(hand) {
 }
 
 function canWin(hand, melds) {
-  // hand = tiles in hand (not melds), melds = already formed melds
-  // Need total 4 melds + 1 pair
-  const meldsNeeded = 4 - melds.length;
-  const tiles = sortHand(hand);
-  return checkWin(tiles, meldsNeeded);
+  const decomposition = Scoring.decomposeHand(sortHand(hand), melds || []);
+  return !!decomposition;
 }
 
-function checkWin(tiles, meldsNeeded) {
-  if(tiles.length === 0 && meldsNeeded === 0) return false; // no pair found
-  if(tiles.length === 2 && meldsNeeded === 0) return tilesEqual(tiles[0],tiles[1]);
-  if(tiles.length < 2) return false;
-  // Try each tile as pair
-  for(let i=0;i<tiles.length;i++) {
-    if(i>0 && tilesEqual(tiles[i],tiles[i-1])) continue;
-    // Try pair at i
-    const pairTile = tiles[i];
-    // Find pair
-    const pairIdx = tiles.findIndex((t,idx2)=>idx2!==i && tilesEqual(t,pairTile));
-    if(pairIdx===-1) continue;
-    const rest = tiles.filter((_,idx2)=>idx2!==i&&idx2!==pairIdx);
-    if(canFormMelds(rest, meldsNeeded)) return true;
-  }
-  return false;
-}
-
-function canFormMelds(tiles, n) {
-  if(n===0) return tiles.length===0;
-  if(tiles.length < 3) return false;
-  const sorted = sortHand(tiles);
-  const first = sorted[0];
-  // Try pong
-  const pongIdxs = [];
-  for(let i=0;i<sorted.length;i++) {
-    if(tilesEqual(sorted[i],first)) pongIdxs.push(i);
-    if(pongIdxs.length===3) break;
-  }
-  if(pongIdxs.length>=3) {
-    const rest = sorted.filter((_,i)=>!pongIdxs.slice(0,3).includes(i));
-    if(canFormMelds(rest,n-1)) return true;
-  }
-  // Try chow (only for numbered suits)
-  if(['bamboo','circle','character'].includes(first.suit) && typeof first.value==='number') {
-    const v = first.value;
-    if(v<=7) {
-      const i1=sorted.findIndex(t=>tilesEqual(t,{suit:first.suit,value:v}));
-      const i2=sorted.findIndex((t,i)=>i>i1&&tilesEqual(t,{suit:first.suit,value:v+1}));
-      const i3=sorted.findIndex((t,i)=>i>i2&&tilesEqual(t,{suit:first.suit,value:v+2}));
-      if(i1!==-1&&i2!==-1&&i3!==-1) {
-        const rest=sorted.filter((_,i)=>i!==i1&&i!==i2&&i!==i3);
-        if(canFormMelds(rest,n-1)) return true;
-      }
-    }
-  }
-  return false;
-}
-
-function calcFaan(hand, melds, flowers, context) {
-  // context: {selfDraw, dealer, seatWind, huTile}
-  let faan = 0;
-  let breakdown = [];
-  // Flowers
-  flowers.forEach(f => {
-    faan++;
-    breakdown.push({desc: lang==='zh'?`花牌 (${f.value})`:`Flower (${f.value})`, faan:1});
+function scoreWinningHand(hand, melds, flowers, context) {
+  const result = Scoring.evaluateWinningHand({
+    concealedTiles: sortHand(hand),
+    exposedMelds: melds || [],
+    flowers: flowers || [],
+    selfDraw: !!context.selfDraw,
+    dealer: !!context.dealer,
+    seatWind: context.seatWind,
+    lang,
+    maps: { dragonMap: DRAGON_MAP, windMap: WIND_MAP }
   });
-  // Check hand type
-  const allMelds = [...melds];
-  // Simple scoring
-  const isAllPong = melds.length + (hand.length===2?0:0) >= 4 &&
-    melds.filter(m=>m.type==='pong'||m.type==='kong').length === melds.length;
-
-  // Check if pure hand (all same suit)
-  const handTiles = [...hand, ...melds.flatMap(m=>m.tiles)];
-  const suits = new Set(handTiles.filter(t=>['bamboo','circle','character'].includes(t.suit)).map(t=>t.suit));
-  const hasHonour = handTiles.some(t=>t.suit==='wind'||t.suit==='dragon');
-  const isPure = suits.size===1 && !hasHonour;
-  const isMixed = suits.size===1 && hasHonour;
-
-  if(isPure) {
-    faan+=7;
-    breakdown.push({desc:lang==='zh'?'清一色':'Pure Hand (One Suit)',faan:7});
-  } else if(isMixed) {
-    faan+=3;
-    breakdown.push({desc:lang==='zh'?'混一色':'Mixed Hand',faan:3});
-  } else if(melds.filter(m=>m.type==='pong'||m.type==='kong').length>=4) {
-    faan+=3;
-    breakdown.push({desc:lang==='zh'?'碰碰胡':'All Pongs',faan:3});
-  } else {
-    // Check ping hu (all chows)
-    const allChow = melds.length>0 && melds.every(m=>m.type==='chow');
-    if(allChow && melds.length>=4) {
-      faan+=1;
-      breakdown.push({desc:lang==='zh'?'平胡':'Ping Hu (All Chows)',faan:1});
-    }
-  }
-
-  if(context.selfDraw) {
-    faan+=1;
-    breakdown.push({desc:lang==='zh'?'自摸':'Self Draw (Zimo)',faan:1});
-  }
-  if(context.dealer) {
-    // dealer bonus handled in point calculation
-  }
-  // Dragon pongs
-  melds.filter(m=>(m.type==='pong'||m.type==='kong')&&m.tiles[0].suit==='dragon').forEach(m=>{
-    faan+=1;
-    breakdown.push({desc:lang==='zh'?`箭刻 (${DRAGON_MAP[m.tiles[0].value]})`:`Dragon Pong (${m.tiles[0].value})`,faan:1});
-  });
-  // Seat wind pong
-  melds.filter(m=>(m.type==='pong'||m.type==='kong')&&m.tiles[0].suit==='wind'&&m.tiles[0].value===context.seatWind).forEach(()=>{
-    faan+=1;
-    breakdown.push({desc:lang==='zh'?'门风刻':'Seat Wind Pong',faan:1});
-  });
-
-  return {faan, breakdown};
+  return result;
 }
 
 // ============================================================
@@ -1293,7 +1195,7 @@ function showActionButtons(playerActions, botActions, tile, fromPlayer, onNobody
     if(pa.action==='hu') {
       // Pre-calculate faan to show count and disable if insufficient
       const testHand = [...GS.hands[PLAYER], tile];
-      const preResult = calcFaan(testHand, GS.melds[PLAYER], GS.flowers[PLAYER], {
+      const preResult = scoreWinningHand(testHand, GS.melds[PLAYER], GS.flowers[PLAYER], {
         selfDraw:false, dealer:GS.dealer===PLAYER, seatWind:WINDS_ORDER[PLAYER]
       });
       const enoughFaan = preResult.faan >= 3;
@@ -1378,7 +1280,7 @@ function showRulesInGame() {
 function executePlayerAction(action, tile, fromPlayer, botActions, onNobodyActs) {
   if(action==='hu') {
     const testHand = tile ? [...GS.hands[PLAYER], tile] : [...GS.hands[PLAYER]];
-    const result = calcFaan(testHand, GS.melds[PLAYER], GS.flowers[PLAYER], {selfDraw:false,dealer:GS.dealer===PLAYER,seatWind:WINDS_ORDER[PLAYER],huTile:tile});
+    const result = scoreWinningHand(testHand, GS.melds[PLAYER], GS.flowers[PLAYER], {selfDraw:false,dealer:GS.dealer===PLAYER,seatWind:WINDS_ORDER[PLAYER],huTile:tile});
     if(result.faan < 3) {
       showToast(t('faanInsufficient', result.faan));
       decideBotActions(botActions, tile, fromPlayer, onNobodyActs);
@@ -1454,7 +1356,7 @@ function decideBotActions(botActions, tile, fromPlayer, onNobodyActs) {
     if(top.action==='hu') {
       GS.hands[p].push(tile);
       GS.discards[fromPlayer].pop();
-      const result=calcFaan(GS.hands[p],GS.melds[p],GS.flowers[p],{selfDraw:false,dealer:GS.dealer===p,seatWind:WINDS_ORDER[p]});
+      const result=scoreWinningHand(GS.hands[p],GS.melds[p],GS.flowers[p],{selfDraw:false,dealer:GS.dealer===p,seatWind:WINDS_ORDER[p]});
       if(result.faan<3) { GS.hands[p].pop(); onNobodyActs(); return; }
       showToast(t('msgBotHu',t('playerNames')[p]));
       triggerBotFlash(p, t('actHu'));
@@ -1513,7 +1415,7 @@ function botTurn() {
   if(p===PLAYER) return;
   // Check self-draw win
   if(canHu(GS.hands[p], GS.melds[p], null)) {
-    const result=calcFaan(GS.hands[p],GS.melds[p],GS.flowers[p],{selfDraw:true,dealer:GS.dealer===p,seatWind:WINDS_ORDER[p]});
+    const result=scoreWinningHand(GS.hands[p],GS.melds[p],GS.flowers[p],{selfDraw:true,dealer:GS.dealer===p,seatWind:WINDS_ORDER[p]});
     if(result.faan>=3) {
       showToast(t('msgBotHu',t('playerNames')[p]));
       GS.phase='score';
