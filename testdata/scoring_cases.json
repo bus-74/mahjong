@@ -1,0 +1,293 @@
+[
+  {
+    "name": "all_pongs_mixed_with_dragon_and_seat_wind",
+    "concealedTiles": [
+      {
+        "suit": "bamboo",
+        "value": 1
+      },
+      {
+        "suit": "bamboo",
+        "value": 1
+      },
+      {
+        "suit": "bamboo",
+        "value": 1
+      },
+      {
+        "suit": "bamboo",
+        "value": 5
+      },
+      {
+        "suit": "bamboo",
+        "value": 5
+      },
+      {
+        "suit": "bamboo",
+        "value": 5
+      },
+      {
+        "suit": "wind",
+        "value": "east"
+      },
+      {
+        "suit": "wind",
+        "value": "east"
+      },
+      {
+        "suit": "wind",
+        "value": "east"
+      },
+      {
+        "suit": "bamboo",
+        "value": 9
+      },
+      {
+        "suit": "bamboo",
+        "value": 9
+      }
+    ],
+    "exposedMelds": [
+      {
+        "type": "pong",
+        "tiles": [
+          {
+            "suit": "dragon",
+            "value": "red"
+          },
+          {
+            "suit": "dragon",
+            "value": "red"
+          },
+          {
+            "suit": "dragon",
+            "value": "red"
+          }
+        ]
+      }
+    ],
+    "flowers": [
+      {
+        "value": "plum"
+      }
+    ],
+    "context": {
+      "selfDraw": true,
+      "dealer": false,
+      "seatWind": "east",
+      "lang": "en"
+    },
+    "expectedFaan": 10
+  },
+  {
+    "name": "pinghu_only",
+    "concealedTiles": [
+      {
+        "suit": "bamboo",
+        "value": 1
+      },
+      {
+        "suit": "bamboo",
+        "value": 2
+      },
+      {
+        "suit": "bamboo",
+        "value": 3
+      },
+      {
+        "suit": "circle",
+        "value": 4
+      },
+      {
+        "suit": "circle",
+        "value": 5
+      },
+      {
+        "suit": "circle",
+        "value": 6
+      },
+      {
+        "suit": "character",
+        "value": 7
+      },
+      {
+        "suit": "character",
+        "value": 8
+      },
+      {
+        "suit": "character",
+        "value": 9
+      },
+      {
+        "suit": "circle",
+        "value": 1
+      },
+      {
+        "suit": "circle",
+        "value": 1
+      },
+      {
+        "suit": "character",
+        "value": 2
+      },
+      {
+        "suit": "character",
+        "value": 3
+      },
+      {
+        "suit": "character",
+        "value": 4
+      }
+    ],
+    "exposedMelds": [],
+    "flowers": [],
+    "context": {
+      "selfDraw": false,
+      "dealer": false,
+      "seatWind": "south",
+      "lang": "en"
+    },
+    "expectedFaan": 1
+  },
+  {
+    "name": "pure_chows_with_self_draw",
+    "concealedTiles": [
+      {
+        "suit": "circle",
+        "value": 1
+      },
+      {
+        "suit": "circle",
+        "value": 2
+      },
+      {
+        "suit": "circle",
+        "value": 3
+      },
+      {
+        "suit": "circle",
+        "value": 3
+      },
+      {
+        "suit": "circle",
+        "value": 4
+      },
+      {
+        "suit": "circle",
+        "value": 5
+      },
+      {
+        "suit": "circle",
+        "value": 5
+      },
+      {
+        "suit": "circle",
+        "value": 6
+      },
+      {
+        "suit": "circle",
+        "value": 7
+      },
+      {
+        "suit": "circle",
+        "value": 7
+      },
+      {
+        "suit": "circle",
+        "value": 8
+      },
+      {
+        "suit": "circle",
+        "value": 9
+      },
+      {
+        "suit": "circle",
+        "value": 2
+      },
+      {
+        "suit": "circle",
+        "value": 2
+      }
+    ],
+    "exposedMelds": [],
+    "flowers": [],
+    "context": {
+      "selfDraw": true,
+      "dealer": false,
+      "seatWind": "west",
+      "lang": "en"
+    },
+    "expectedFaan": 9
+  },
+  {
+    "name": "dealer_modifier_present_but_no_extra_faan",
+    "concealedTiles": [
+      {
+        "suit": "bamboo",
+        "value": 1
+      },
+      {
+        "suit": "bamboo",
+        "value": 2
+      },
+      {
+        "suit": "bamboo",
+        "value": 3
+      },
+      {
+        "suit": "circle",
+        "value": 4
+      },
+      {
+        "suit": "circle",
+        "value": 5
+      },
+      {
+        "suit": "circle",
+        "value": 6
+      },
+      {
+        "suit": "character",
+        "value": 7
+      },
+      {
+        "suit": "character",
+        "value": 8
+      },
+      {
+        "suit": "character",
+        "value": 9
+      },
+      {
+        "suit": "circle",
+        "value": 1
+      },
+      {
+        "suit": "circle",
+        "value": 1
+      },
+      {
+        "suit": "character",
+        "value": 2
+      },
+      {
+        "suit": "character",
+        "value": 3
+      },
+      {
+        "suit": "character",
+        "value": 4
+      }
+    ],
+    "exposedMelds": [],
+    "flowers": [],
+    "context": {
+      "selfDraw": false,
+      "dealer": true,
+      "seatWind": "north",
+      "lang": "en"
+    },
+    "expectedFaan": 1,
+    "expectDealerBreakdown": true
+  }
+]
