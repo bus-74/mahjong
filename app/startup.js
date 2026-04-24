@@ -31,6 +31,7 @@ function bindUI() {
 function startGame(diff) {
   difficulty = diff;
   showScreen('game-screen');
+  renderer.clearSelection();
   store.dispatch({ type: 'INIT_GAME', diff });
   processFlowersAll(() => {
     store.dispatch({ type: 'DRAW_TILE', player: 0 });
@@ -64,6 +65,7 @@ function handlePlayerTap(index) {
   const state = store.getState();
   if (!state || state.turn !== PLAYER || state.phase !== 'discard') return;
   store.dispatch({ type: 'DISCARD', player: PLAYER, index });
+  renderer.clearSelection();
   resolveClaims(PLAYER, state.lastDiscard);
 }
 
@@ -125,7 +127,10 @@ function advanceTurn() {
 
 function maybeBotTurn() {
   const state = store.getState();
-  if (!state || state.phase === 'score' || state.turn === PLAYER) return;
+  if (!state || state.phase === 'score' || state.turn === PLAYER) {
+    if (state?.turn !== PLAYER) renderer.clearSelection();
+    return;
+  }
   const idx = chooseDiscard(difficulty, state, state.turn);
   setTimeout(() => {
     store.dispatch({ type: 'DISCARD', player: state.turn, index: idx });
