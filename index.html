@@ -531,8 +531,11 @@ const T = {
     dHardName:'Mahjong King', dHardTag:'"Ice cold"', dHardDesc:'Counts every tile. Tracks discards. Minimises shanten. Deadly.',
     btnBack:'← Back',
     statsTitle:'Your Statistics', statsBack:'← Back',
-    statsGames:'Games Played', statsWins:'Wins', statsLosses:'Losses',
-    statsDraws:'Draws', statsWinRate:'Win Rate', statsBest:'Best Hand (faan)',
+    statsGamesPlayed:'Games Played', statsGamesWon:'Games Won', statsGamesLost:'Games Lost',
+    statsGamesDrawn:'Games Drawn', statsGameWinRate:'Game Win Rate',
+    statsHandsPlayed:'Hands Played', statsHandsWon:'Hands Won', statsHandsLost:'Hands Lost',
+    statsHandsDrawn:'Hands Drawn', statsHandWinRate:'Hand Win Rate',
+    statsBest:'Best Hand (faan)',
     rulesTitle:'Singapore/Malaysian Rules',
     rulesClose:'Close',
     rulesContent:`<b>Objective:</b> Form a winning hand of 4 sets (melds) + 1 pair. Minimum 3 faan required.<br><br>
@@ -586,8 +589,11 @@ const T = {
     dHardName:'麻将之王', dHardTag:'"冷静如冰"', dHardDesc:'计算每张牌，追踪出牌，最小化向听数，非常厉害。',
     btnBack:'← 返回',
     statsTitle:'你的统计', statsBack:'← 返回',
-    statsGames:'游戏局数', statsWins:'赢牌', statsLosses:'输牌',
-    statsDraws:'荒牌', statsWinRate:'胜率', statsBest:'最高番数',
+    statsGamesPlayed:'游戏场数', statsGamesWon:'游戏胜场', statsGamesLost:'游戏败场',
+    statsGamesDrawn:'游戏平局', statsGameWinRate:'游戏胜率',
+    statsHandsPlayed:'小局数', statsHandsWon:'赢牌', statsHandsLost:'输牌',
+    statsHandsDrawn:'荒牌', statsHandWinRate:'小局胜率',
+    statsBest:'最高番数',
     rulesTitle:'新加坡/马来西亚麻将规则',
     rulesClose:'关闭',
     rulesContent:`<b>目标：</b>组成 4 组（刻/顺）+ 1 对将，至少需 3 番方可胡牌。<br><br>
@@ -696,13 +702,19 @@ function hideRules() { document.getElementById('rules-overlay').classList.add('h
 function renderStats() {
   const s = loadStats();
   const L = T[lang];
-  const wr = s.games > 0 ? Math.round(s.wins/s.games*100) + '%' : '—';
+  const gameWr = s.gamesPlayed > 0 ? Math.round(s.gamesWon / s.gamesPlayed * 100) + '%' : '—';
+  const handWr = s.handsPlayed > 0 ? Math.round(s.handsWon / s.handsPlayed * 100) + '%' : '—';
   document.getElementById('stats-content').innerHTML = `
-    <div class="stat-row"><span>${L.statsGames}</span><span class="stat-val">${s.games}</span></div>
-    <div class="stat-row"><span>${L.statsWins}</span><span class="stat-val">${s.wins}</span></div>
-    <div class="stat-row"><span>${L.statsLosses}</span><span class="stat-val">${s.losses}</span></div>
-    <div class="stat-row"><span>${L.statsDraws}</span><span class="stat-val">${s.draws}</span></div>
-    <div class="stat-row"><span>${L.statsWinRate}</span><span class="stat-val">${wr}</span></div>
+    <div class="stat-row"><span>${L.statsGamesPlayed}</span><span class="stat-val">${s.gamesPlayed}</span></div>
+    <div class="stat-row"><span>${L.statsGamesWon}</span><span class="stat-val">${s.gamesWon}</span></div>
+    <div class="stat-row"><span>${L.statsGamesLost}</span><span class="stat-val">${s.gamesLost}</span></div>
+    <div class="stat-row"><span>${L.statsGamesDrawn}</span><span class="stat-val">${s.gamesDrawn}</span></div>
+    <div class="stat-row"><span>${L.statsGameWinRate}</span><span class="stat-val">${gameWr}</span></div>
+    <div class="stat-row"><span>${L.statsHandsPlayed}</span><span class="stat-val">${s.handsPlayed}</span></div>
+    <div class="stat-row"><span>${L.statsHandsWon}</span><span class="stat-val">${s.handsWon}</span></div>
+    <div class="stat-row"><span>${L.statsHandsLost}</span><span class="stat-val">${s.handsLost}</span></div>
+    <div class="stat-row"><span>${L.statsHandsDrawn}</span><span class="stat-val">${s.handsDrawn}</span></div>
+    <div class="stat-row"><span>${L.statsHandWinRate}</span><span class="stat-val">${handWr}</span></div>
     <div class="stat-row"><span>${L.statsBest}</span><span class="stat-val">${s.bestFaan || '—'}</span></div>
   `;
   document.getElementById('stats-back').textContent = L.statsBack;
@@ -711,12 +723,70 @@ function renderStats() {
 // ============================================================
 // STATS PERSISTENCE
 // ============================================================
+const DEFAULT_STATS = {
+  gamesPlayed: 0,
+  gamesWon: 0,
+  gamesLost: 0,
+  gamesDrawn: 0,
+  handsPlayed: 0,
+  handsWon: 0,
+  handsLost: 0,
+  handsDrawn: 0,
+  bestFaan: 0,
+};
+
+function toInt(v) {
+  return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+}
+
+function normalizeStats(raw) {
+  if(!raw || typeof raw !== 'object') return {stats:{...DEFAULT_STATS}, migrated:false};
+
+  // Legacy format: {games,wins,losses,draws,bestFaan}
+  if(('games' in raw) || ('wins' in raw) || ('losses' in raw) || ('draws' in raw)) {
+    return {
+      stats: {
+        ...DEFAULT_STATS,
+        // Legacy counters were tracked per hand; preserve them as hand stats.
+        handsPlayed: toInt(raw.games),
+        handsWon: toInt(raw.wins),
+        handsLost: toInt(raw.losses),
+        handsDrawn: toInt(raw.draws),
+        bestFaan: toInt(raw.bestFaan),
+      },
+      migrated: true,
+    };
+  }
+
+  return {
+    stats: {
+      ...DEFAULT_STATS,
+      gamesPlayed: toInt(raw.gamesPlayed),
+      gamesWon: toInt(raw.gamesWon),
+      gamesLost: toInt(raw.gamesLost),
+      gamesDrawn: toInt(raw.gamesDrawn),
+      handsPlayed: toInt(raw.handsPlayed),
+      handsWon: toInt(raw.handsWon),
+      handsLost: toInt(raw.handsLost),
+      handsDrawn: toInt(raw.handsDrawn),
+      bestFaan: toInt(raw.bestFaan),
+    },
+    migrated: false,
+  };
+}
+
 function loadStats() {
-  try { return JSON.parse(localStorage.getItem('huat_stats')) || {games:0,wins:0,losses:0,draws:0,bestFaan:0}; }
-  catch(e) { return {games:0,wins:0,losses:0,draws:0,bestFaan:0}; }
+  try {
+    const raw = JSON.parse(localStorage.getItem('huat_stats'));
+    const normalized = normalizeStats(raw);
+    if(normalized.migrated) saveStats(normalized.stats);
+    return normalized.stats;
+  } catch(e) {
+    return {...DEFAULT_STATS};
+  }
 }
 function saveStats(s) {
-  try { localStorage.setItem('huat_stats', JSON.stringify(s)); } catch(e) {}
+  try { localStorage.setItem('huat_stats', JSON.stringify(normalizeStats(s).stats)); } catch(e) {}
 }
 
 // ============================================================
@@ -1534,7 +1604,7 @@ function hardDiscard(p) {
 function handleDraw() {
   showToast(t('msgDraw'));
   GS.phase='score';
-  // Stats counted inside showScoreModal via winner=-1 sentinel; do NOT increment here
+  // Drawn hand stats are recorded here.
   setTimeout(()=>{
     document.getElementById('score-title').textContent=t('draw');
     document.getElementById('score-sub').textContent='';
@@ -1542,8 +1612,10 @@ function handleDraw() {
     document.getElementById('btn-next-hand').textContent=t('btnNextHand');
     document.getElementById('btn-end-game').textContent=t('btnEndGame');
     document.getElementById('score-overlay').classList.remove('hidden');
-    // Record draw in stats here (single place)
-    const stats=loadStats(); stats.games++; stats.draws++; saveStats(stats);
+    const stats=loadStats();
+    stats.handsPlayed++;
+    stats.handsDrawn++;
+    saveStats(stats);
   },800);
 }
 
@@ -1564,10 +1636,11 @@ function showScoreModal(winner, result, selfDraw) {
     GS.scores[winner]+=points;
   }
 
-  // Stats — draws are counted in handleDraw; wins/losses counted here
-  const stats=loadStats(); stats.games++;
-  if(winner===PLAYER) { stats.wins++; if(result.faan>stats.bestFaan) stats.bestFaan=result.faan; }
-  else { stats.losses++; }
+  // Hand stats — game-level results are recorded in endGame().
+  const stats=loadStats();
+  stats.handsPlayed++;
+  if(winner===PLAYER) { stats.handsWon++; if(result.faan>stats.bestFaan) stats.bestFaan=result.faan; }
+  else { stats.handsLost++; }
   saveStats(stats);
 
   const pName=t('playerNames')[winner];
@@ -1618,6 +1691,19 @@ function nextHand() {
 }
 
 function endGame() {
+  if(!GS || GS.gameOver) return;
+  GS.gameOver = true;
+
+  const stats = loadStats();
+  const playerScore = GS.scores[PLAYER];
+  const maxScore = Math.max(...GS.scores);
+  const leaderCount = GS.scores.filter(s => s === maxScore).length;
+  stats.gamesPlayed++;
+  if(playerScore === maxScore && leaderCount === 1) stats.gamesWon++;
+  else if(playerScore === maxScore) stats.gamesDrawn++;
+  else stats.gamesLost++;
+  saveStats(stats);
+
   document.getElementById('score-overlay').classList.add('hidden');
   document.getElementById('gameover-overlay').classList.remove('hidden');
   document.getElementById('go-title').textContent=t('gameOver');
